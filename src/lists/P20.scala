@@ -8,6 +8,7 @@ package lists
 object P20 {
 
   def removeAt[T](n: Int, l: List[T]): (List[T], T) = (n, l) match {
+    case (_, Nil) => throw new NoSuchElementException
     case (0, _) => (l.tail, l.head)
     case (_, _) => val (ls,el) = removeAt(n-1, l.tail)
       (l.head::ls, el)
