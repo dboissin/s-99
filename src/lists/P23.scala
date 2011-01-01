@@ -10,6 +10,8 @@ object P23 {
   import java.util.Random
 
   def randomSelect[T](nb: Int, l: List[T]): List[T] =  {
+    if (l == Nil)
+      return Nil
     val (ls, el) = removeAt(new Random().nextInt(l.length), l)
     if (nb < 1)
       Nil
