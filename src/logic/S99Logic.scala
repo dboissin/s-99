@@ -34,31 +34,38 @@ object S99Logic {
 			println(a + " " + b + " " + f(a, b))
 		}
 	}
-
-	class S99Logic (a: Boolean) {
-		def and(b:Boolean): Boolean = (a, b) match {
-		case (true, true) => true
-		case _ => false
-		}
-
-		def or(b: Boolean): Boolean = (a, b) match {
-		case (false, false) => false
-		case _ => true
-		}
-
-		def nand(b: Boolean): Boolean = !(a and b)
-
-		def nor(b: Boolean): Boolean = !(a or b)
-
-		def xor(b: Boolean): Boolean = (a, b) match {
-		case (false, true) => true
-		case (true, false) => true
-		case _ => false
-		}
-
-		def impl(b: Boolean): Boolean = !a or b
-
-		def equ(a:Boolean, b: Boolean): Boolean = !(a xor b)		
-
+	
+	def grey(nb: Int): List[String] = nb match {
+		case 1 => List("0", "1")
+		case _ => val tmp = grey(nb - 1)
+		(tmp map (value => "0" + value)):::(tmp.reverse map (value => "1" + value))
 	}
+}
+
+class S99Logic (a: Boolean) {
+	import S99Logic._
+	
+	def and(b:Boolean): Boolean = (a, b) match {
+	case (true, true) => true
+	case _ => false
+	}
+
+	def or(b: Boolean): Boolean = (a, b) match {
+	case (false, false) => false
+	case _ => true
+	}
+
+	def nand(b: Boolean): Boolean = !(a and b)
+
+	def nor(b: Boolean): Boolean = !(a or b)
+
+	def xor(b: Boolean): Boolean = (a, b) match {
+	case (false, true) => true
+	case (true, false) => true
+	case _ => false
+	}
+
+	def impl(b: Boolean): Boolean = !a or b
+
+	def equ(a:Boolean, b: Boolean): Boolean = !(a xor b)		
 }
