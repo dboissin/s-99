@@ -1,5 +1,9 @@
-package logic
+package fr.dboissin.s99.problems
 
+/**
+ * 
+ * @author dboissin
+ */
 object S99Logic {
 
 	implicit def boolean2S99Logic(a: Boolean): S99Logic = new S99Logic(a)

@@ -1,9 +1,16 @@
-package logic
+package fr.dboissin.s99.problems
 
 import org.scalatest.Spec
-import logic.S99Logic._
+import fr.dboissin.s99.problems.S99Logic._
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-class TestS99Logic() extends Spec {
+/**
+ * 
+ * @author dboissin
+ */
+@RunWith(classOf[JUnitRunner])
+class S99LogicTest() extends Spec {
     
     describe("P46 : Truth tables for logical expressions.") {
         it("and(true, true) should be true") {
