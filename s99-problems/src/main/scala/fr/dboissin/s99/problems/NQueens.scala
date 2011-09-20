@@ -21,12 +21,14 @@ case class NQueens (
   var queens = 0 to size-1 toArray
   
   def evaluate() = {
-    var nbr = 0
-	for (i <- 0 until queens.size)
-	  for (j <- (i + 1) until queens.size)
-	    if (abs(queens.apply(j) - queens.apply(i)) == abs(j - i))
-	      nbr += 1
-	nbr
+    val maxIdx = size - 1
+    (0 to maxIdx toList).foldLeft(0)((err, i) => {
+      (i+1 to maxIdx).foldLeft(err)((err2, j) => {
+         if (abs(queens.apply(j) - queens.apply(i)) == abs(j - i))
+           err2 + 1
+         else
+           err2
+    })})
   }
   
   def swap(i: Int, j: Int) {
