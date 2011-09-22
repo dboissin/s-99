@@ -8,28 +8,28 @@ package fr.dboissin.s99.problems
  * @author dboissin
  */
 object KnightTour {
-  
+
   private val allowedMovement = List((1, -2), (-1, -2), (-2, -1), (2, -1),
 	      (-2, 1), (2, 1), (-1, 2), (1, 2))
-	      
-  private def sortWarnsdorffs(path: List[(Int, Int)], size:Int) = {
-    unorderedJumps(path, size).size
-  }
-  
+
+  /**
+   * @return Nexts available coordinates sorted by using Warnsdorff's heuristic.
+   */
   def jumps(path: List[(Int, Int)], size:Int) = {
-	  unorderedJumps(path, size).sortWith((pos1, pos2) =>
-	    sortWarnsdorffs(pos1::path, size) < sortWarnsdorffs(pos2::path, size))
+    unorderedJumps(path, size).map(coordinates =>
+      (unorderedJumps(coordinates::path, size).size, coordinates)
+    ).sortWith((el1, el2) => el1._1  < el2._1).map(el => el._2)
   }
   
   def unorderedJumps(path: List[(Int, Int)], size:Int) = {
-	val currentPosition = path.head
-	allowedMovement.map(pos =>
-	  (currentPosition._1 + pos._1, currentPosition._2 + pos._2)
-	).filter { case (x, y) =>
-	  x >= 0 && x < size && y >= 0 && y < size && !path.contains((x,y)) 
-	}
+    val currentPosition = path.head
+    allowedMovement.map(pos =>
+      (currentPosition._1 + pos._1, currentPosition._2 + pos._2)
+    ).filter { case (x, y) =>
+      x >= 0 && x < size && y >= 0 && y < size && !path.contains((x,y))
+    }
   }
-  
+
   def findPath(start: (Int, Int), size: Int) = {
     def find(path: List[(Int, Int)]): List[(Int, Int)] = 
       jumps(path, size) match {
