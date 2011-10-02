@@ -18,4 +18,5 @@ tmp/**/*
 .settings/
 .loadpath
 .scala_dependencies
+.cache
 
