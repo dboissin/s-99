@@ -1,0 +1,13 @@
+@(tests:List[(String, String)])(implicit request:play.api.mvc.RequestHeader)
+
+@main {
+
+    <h2>@tests.size tests</h2>
+
+    <ul>
+        @tests.map { case (id, name) =>
+            <li><a href="@id">@name</a></li>
+        }
+    </ul>
+
+}

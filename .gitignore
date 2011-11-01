@@ -19,4 +19,5 @@ tmp/**/*
 .loadpath
 .scala_dependencies
 .cache
+**/logs
 

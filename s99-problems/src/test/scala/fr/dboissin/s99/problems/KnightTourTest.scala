@@ -15,6 +15,6 @@ class KnightTourTest extends FunSuite {
   
   test("P91 : Knight's tour - findPath") {
     val res = findPath((1,0), 8)
-    assert(res.size == 64)
+    assert(res.get.size == 64)
   }
 }

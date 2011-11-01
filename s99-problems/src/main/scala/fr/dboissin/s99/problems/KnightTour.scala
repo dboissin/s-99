@@ -36,7 +36,12 @@ object KnightTour {
         case Nil => path
         case head::tail => find(head::path)
       }
-    find(start::Nil).reverse
+    val tour = find(start::Nil)
+    if (tour.size == (size * size)) {
+      Some(tour.reverse)
+    } else {
+      None
+    }
   }
 
 }
