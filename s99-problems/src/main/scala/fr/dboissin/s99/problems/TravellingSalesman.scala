@@ -4,77 +4,116 @@ import scala.math._
 import scala.collection.immutable.StringOps
 import scala.util.Random
 import java.util.Date
-import scala.actors.Actor
+import akka.actor.Actor._
+import akka.actor.Actor
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
+import akka.dispatch.CompletableFuture
+import akka.routing.Routing
+import akka.routing.CyclicIterator
+import akka.routing.Routing.Broadcast
+import akka.actor.PoisonPill
 
 case class City(id:Int, x:Double, y:Double)
-
+case class Start(id:String, initCities: List[City], seed: Long = new Date().getTime,
+    populationSize:Int = 20, selectionSize:Int = 5, waitIdx:Int = 9999999)
 case class Individual(path:List[City], pathSize: Double)
+case class Result(id:String, individual:Individual, seed: Long)
+case class SearchPath(cities: List[City], lastDistance: Option[Double]=None,
+    seed: Long = new Date().getTime)
+case class SearchResult(path: List[City], pathSize: Double, seed: Long)
 
-class PartialResult extends Actor {
-  def act() {
-    loop {
-      react {
-        case Individual(path, pathSize) => println("Distance : " + pathSize + " - " + path)
-      }
+class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
+
+  val futures = new HashMap[String, ListBuffer[CompletableFuture[Any]]]
+  val bests = new HashMap[String, SearchResult]
+  val workers = Vector.fill(poolSize)(actorOf[TravellingSalesman].start())
+  val loadBalancer = Routing.loadBalancerActor(CyclicIterator(workers))
+
+  private def addFuture(key:String, future:CompletableFuture[Any]) = {
+    futures.get(key) match {
+      case Some(futures) =>
+        futures += future
+        false
+      case None =>
+        futures.put(key, ListBuffer.apply(future))
+        true
     }
   }
-}
 
-class TravellingSalesmanGA (
-  val initCities: List[City],
-  val partialRes: Actor = null,
-  val seed: Long = new Date().getTime,
-  val populationSize:Int = 20,
-  val selectionSize:Int = 5,
-  val waitIdx:Int = 9999999
-) extends Actor {
-  import fr.dboissin.s99.problems.TravellingSalesmanHelper._
-
-  val random: Random = new Random(seed)
-  var best:Individual = null
-
-  def generatePopulation(cities: List[City]) = {
-    List.fill(populationSize)(abs(random.nextInt%cities.size))
-    .map(startCity => {
-      val path = greedy(cities, cities.apply(startCity))
-      Individual(path, pathLonger(path))
-    })
-  }
-
-  def selection(population:List[Individual]) = {
-    val selected = List.fill(selectionSize)(abs(random.nextInt%population.size))
-    .map(idx => population.apply(idx))
-    .sortWith((ind1, ind2) => ind1.pathSize < ind2.pathSize)
-    val idx = population.indexWhere(ind => ind.pathSize == selected.last.pathSize)
-    val tmp = population.splitAt(idx)
-    selected.head::tmp._1:::tmp._2.tail
-  }
-
-  def act() {
-    var population = generatePopulation(initCities)
-    var wait = waitIdx
-    best = population.head
-    while (wait > 0) {
-      population = selection(population)
-      population = twoOpt(population.head, abs(random.nextInt), abs(random.nextInt))::population.tail
-      val tmp = bestIndividual(population)
-      if (tmp.pathSize < best.pathSize) {
-        best = tmp
-        wait = waitIdx
-        if (partialRes != null) {
-          partialRes ! tmp
+  private def addResult(key:String, result:SearchResult) = {
+    bests.remove(key) match {
+      case Some(res) =>
+        if (result.pathSize < res.pathSize) {
+          bests.put(key, result)
+        } else {
+          bests.put(key, res)
         }
-      } else {
-        wait -= 1
-      }
+      case None => bests.put(key, result)
     }
   }
 
-  override def toString = "Seed : " + seed + " - Distance : " + best.pathSize + " Solution : " + best.path
+  def receive = {
+    case SearchPath(cities, lastDistance, seed) =>
+      val hash = cities.toString
+      val sf = self.senderFuture.getOrElse(throw new RuntimeException("Response Error"))
+
+      bests.get(hash) match {
+        case Some(res) =>
+          if (lastDistance.isDefined && res.pathSize < lastDistance.get) {
+            sf.completeWithResult(res)
+          } else {
+            addFuture(hash, sf)
+          }
+        case None =>
+          if (addFuture(hash, sf)) {
+            loadBalancer ! Start(hash, cities, seed)
+          }
+      }
+
+    case Result(id, individual, seed) =>
+      val res = SearchResult(individual.path, individual.pathSize, seed)
+      addResult(id, res)
+      futures.get(id).foreach{lf =>
+        lf.foreach(f => f.completeWithResult(res))
+      }
+  }
+
+    override def postStop() = {
+    loadBalancer ! Broadcast(PoisonPill)
+    loadBalancer ! PoisonPill
+  }
 
 }
 
-object TravellingSalesmanHelper {
+class TravellingSalesman extends Actor {
+  import fr.dboissin.s99.problems.TravellingSalesman._
+
+  implicit val random = new Random()
+
+  def receive = {
+    case Start(id, initCities, seed, populationSize, selectionSize, waitIdx) =>
+      random.setSeed(seed)
+      var population = generatePopulation(initCities, populationSize)
+      var wait = waitIdx
+      var best = population.head
+      while (wait > 0) {
+        population = selection(population, selectionSize)
+        population = twoOpt(population.head, abs(random.nextInt),
+          abs(random.nextInt))::population.tail
+        val tmp = bestIndividual(population)
+        if (tmp.pathSize < best.pathSize) {
+          best = tmp
+          wait = waitIdx
+          self.reply(Result(id, best, seed))
+        } else {
+          wait -= 1
+        }
+      }
+  }
+}
+
+object TravellingSalesman {
 
   import scala.io.Source._
 
@@ -84,12 +123,12 @@ object TravellingSalesmanHelper {
       val nextCity = cities.tail.foldLeft((cities.head,
           distanceBetweenCities(start, cities.head)))((c,cur) => {
         val d = distanceBetweenCities(start, cur)
-	    if (d < c._2) 
-	   	  (cur, d)
-	    else
-	      c
-	  })._1
-	  nextCity::greedy(cities.filter(e => e != nextCity), nextCity)
+        if (d < c._2)
+          (cur, d)
+        else
+         c
+      })._1
+      nextCity::greedy(cities.filter(e => e != nextCity), nextCity)
   }
 
   /**
@@ -101,7 +140,7 @@ object TravellingSalesmanHelper {
 
   def loadFromFile(path: String): List[City] = {
     implicit def string2Double(s: String): Double = new StringOps(s).toDouble
-    
+
     val lines = fromFile(path).getLines().toList;
     var i = -1
     lines.tail.map(line => { 
@@ -130,8 +169,24 @@ object TravellingSalesmanHelper {
   }
 
   def bestIndividual(population: List[Individual]) = {
-	population.tail.foldLeft(population.head)((best, current) =>
-	  (if (current.pathSize < best.pathSize) current else best))
+    population.tail.foldLeft(population.head)((best, current) =>
+      (if (current.pathSize < best.pathSize) current else best))
   }
 
+  def generatePopulation(cities: List[City], populationSize:Int)(implicit random: Random) = {
+    List.fill(populationSize)(abs(random.nextInt%cities.size))
+    .map(startCity => {
+      val path = greedy(cities, cities.apply(startCity))
+      Individual(path, pathLonger(path))
+    })
+  }
+
+  def selection(population:List[Individual], selectionSize:Int)(implicit random: Random) = {
+    val selected = List.fill(selectionSize)(abs(random.nextInt%population.size))
+    .map(idx => population.apply(idx))
+    .sortWith((ind1, ind2) => ind1.pathSize < ind2.pathSize)
+    val idx = population.indexWhere(ind => ind.pathSize == selected.last.pathSize)
+    val tmp = population.splitAt(idx)
+    selected.head::tmp._1:::tmp._2.tail
+  }
 }
