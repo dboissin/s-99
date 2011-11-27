@@ -82,4 +82,8 @@ class TravellingSalesmanTest extends FunSuite {
     tsm.stop()
   }
 
+  test("Hash sha1") {
+    val hash = Hash.sha1(path.toString)
+    assert(hash.size == 40)
+  }
 }

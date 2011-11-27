@@ -1,18 +1,21 @@
 package fr.dboissin.s99.problems
 
-import scala.math._
-import scala.collection.immutable.StringOps
-import scala.util.Random
+import java.security.MessageDigest
 import java.util.Date
-import akka.actor.Actor._
-import akka.actor.Actor
+
+import scala.collection.immutable.StringOps
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-import akka.dispatch.CompletableFuture
-import akka.routing.Routing
-import akka.routing.CyclicIterator
-import akka.routing.Routing.Broadcast
+import scala.math._
+import scala.util.Random
+
+import akka.actor.Actor._
+import akka.actor.Actor
 import akka.actor.PoisonPill
+import akka.dispatch.CompletableFuture
+import akka.routing.Routing.Broadcast
+import akka.routing.CyclicIterator
+import akka.routing.Routing
 
 case class City(id:Int, x:Double, y:Double)
 case class Start(id:String, initCities: List[City], seed: Long = new Date().getTime,
@@ -55,7 +58,7 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
 
   def receive = {
     case SearchPath(cities, lastDistance, seed) =>
-      val hash = cities.toString
+      val hash = Hash.sha1(cities.toString)
       val sf = self.senderFuture.getOrElse(throw new RuntimeException("Response Error"))
 
       bests.get(hash) match {
@@ -188,5 +191,21 @@ object TravellingSalesman {
     val idx = population.indexWhere(ind => ind.pathSize == selected.last.pathSize)
     val tmp = population.splitAt(idx)
     selected.head::tmp._1:::tmp._2.tail
+  }
+}
+
+object Hash {
+  private def bytes2Hex(bytes: Array[Byte]): String = {
+    def cvtByte(b: Byte): String = {
+      (if (( b & 0xff ) < 0x10 ) "0" else "") + java.lang.Long.toString(b & 0xff, 16)
+    }
+    bytes.map(cvtByte(_)).mkString.toUpperCase
+  }
+
+  def sha1(text: String) = {
+    val md = MessageDigest.getInstance("SHA")
+    md.reset
+    md.update(text.getBytes("UTF-8"), 0, text.length())
+    bytes2Hex(md.digest)
   }
 }
