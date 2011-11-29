@@ -1,0 +1,20 @@
+@(path: Option[String])(implicit request:play.api.mvc.RequestHeader)
+
+@main {
+
+    <h2>Travelling Salesman</h2>
+
+    <div id="resultats"></div>
+    <canvas id="board" width="500" height="500"></canvas>
+    <script type="text/javascript">
+      var board = document.getElementById("board");
+      var callback = function(data) {
+        _.each(data, function(obj){
+          document.getElementById("resultats").innerHTML += obj.id + "-";
+        });
+        document.getElementById("resultats").innerHTML += "<br />";
+      }
+    </script>
+
+    <iframe src="/travellingsalesmansearch" style="display:none;"></iframe>
+}

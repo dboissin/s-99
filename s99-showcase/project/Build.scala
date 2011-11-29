@@ -1,5 +1,7 @@
 import sbt._
 import Keys._
+import PlayProject._
+
 
 object ApplicationBuild extends Build {
 
@@ -8,10 +10,11 @@ object ApplicationBuild extends Build {
 
     val appDependencies = Seq(
       "fr.dboissin.s99" % "s99-problems" % "0.1-SNAPSHOT",
-      "net.debasishg" %% "sjson" % "0.15"
+      "net.debasishg" %% "sjson" % "0.15",
+      "com.fasterxml" % "jackson-module-scala" % "1.9.1-SNAPSHOT"
     )
 
 
-    val main = PlayProject(appName, appVersion, appDependencies)
+    val main = PlayProject(appName, appVersion, appDependencies).settings(defaultScalaSettings:_*)
 
 }
