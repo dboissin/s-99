@@ -2,20 +2,19 @@ package fr.dboissin.s99.problems
 
 import java.security.MessageDigest
 import java.util.Date
-
 import scala.collection.immutable.StringOps
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.math._
 import scala.util.Random
-
 import akka.actor.Actor._
 import akka.actor.Actor
 import akka.actor.PoisonPill
-import akka.dispatch.CompletableFuture
-import akka.routing.Routing.Broadcast
-import akka.routing.CyclicIterator
-import akka.routing.Routing
+import akka.dispatch.Promise
+import akka.dispatch.Promise._
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.routing._
 
 case class City(id:Int, x:Double, y:Double)
 case class Start(id:String, initCities: List[City], seed: Long = new Date().getTime,
@@ -26,68 +25,6 @@ case class SearchPath(cities: List[City], lastDistance: Option[Double]=None,
     seed: Long = new Date().getTime)
 case class SearchResult(path: List[City], pathSize: Double, seed: Long)
 
-class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
-
-  val futures = new HashMap[String, ListBuffer[CompletableFuture[Any]]]
-  val bests = new HashMap[String, SearchResult]
-  val workers = Vector.fill(poolSize)(actorOf[TravellingSalesman].start())
-  val loadBalancer = Routing.loadBalancerActor(CyclicIterator(workers))
-
-  private def addFuture(key:String, future:CompletableFuture[Any]) = {
-    futures.get(key) match {
-      case Some(futures) =>
-        futures += future
-        false
-      case None =>
-        futures.put(key, ListBuffer.apply(future))
-        true
-    }
-  }
-
-  private def addResult(key:String, result:SearchResult) = {
-    bests.remove(key) match {
-      case Some(res) =>
-        if (result.pathSize < res.pathSize) {
-          bests.put(key, result)
-        } else {
-          bests.put(key, res)
-        }
-      case None => bests.put(key, result)
-    }
-  }
-
-  def receive = {
-    case SearchPath(cities, lastDistance, seed) =>
-      val hash = Hash.sha1(cities.toString)
-      val sf = self.senderFuture.getOrElse(throw new RuntimeException("Response Error"))
-
-      bests.get(hash) match {
-        case Some(res) =>
-          if (lastDistance.isDefined && res.pathSize < lastDistance.get) {
-            sf.completeWithResult(res)
-          } else {
-            addFuture(hash, sf)
-          }
-        case None =>
-          if (addFuture(hash, sf)) {
-            loadBalancer ! Start(hash, cities, seed)
-          }
-      }
-
-    case Result(id, individual, seed) =>
-      val res = SearchResult(individual.path, individual.pathSize, seed)
-      addResult(id, res)
-      futures.get(id).foreach{lf =>
-        lf.foreach(f => f.completeWithResult(res))
-      }
-  }
-
-    override def postStop() = {
-    loadBalancer ! Broadcast(PoisonPill)
-    loadBalancer ! PoisonPill
-  }
-
-}
 
 class TravellingSalesman extends Actor {
   import fr.dboissin.s99.problems.TravellingSalesman._
@@ -108,7 +45,7 @@ class TravellingSalesman extends Actor {
         if (tmp.pathSize < best.pathSize) {
           best = tmp
           wait = waitIdx
-          self.reply(Result(id, best, seed))
+          sender ! Result(id, best, seed)
         } else {
           wait -= 1
         }

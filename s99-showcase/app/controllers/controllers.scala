@@ -1,8 +1,10 @@
 package controllers
 
+import play.api._
 import org.codehaus.jackson.map.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import actors.Actors
+import actors._
+import akka.util.duration._
 import akka.actor.Actor._
 import fr.dboissin.s99.problems.KnightTour._
 import fr.dboissin.s99.problems.City
@@ -10,18 +12,15 @@ import play.api.mvc.Results._
 import play.api.mvc._
 import sjson.json.DefaultProtocol._
 import sjson.json._
-import actors.GetPath
 import play.api.libs.iteratee.Enumerator
 import fr.dboissin.s99.problems.SearchResult
 import fr.dboissin.s99.problems.SearchPath
-import play.api.libs.akka._
 import play.api.libs._
+import play.api.libs.akka._
 import play.api.libs.Comet.CometMessage
 import play.api.libs.concurrent._
 
 object Showcase extends Controller {
-
-  //lazy val tsm = actorOf(new TravellingSalesmanManagement()).start()
   val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)
   implicit val searchResultMessage = CometMessage[SearchResult](res =>
@@ -46,16 +45,17 @@ object Showcase extends Controller {
 
   def travellingSalesman = Action { implicit request =>
     val json = mapper.writeValueAsString(cities.toArray[City])
-    Actors.travellingSalesman ! SearchPath(cities)
+    (Actors.travellingSalesman ? (SearchPath(cities), 5.seconds)).mapTo[String]
+        .foreach(Logger.info(_))
     Ok(views.html.travellingsalesman(None))
   }
 
   def travellingSalesmanSearch(hash:String) = Action {
     AsyncResult {
-      (Actors.travellingSalesman ? GetPath(hash) map {_.asInstanceOf[Enumerator[SearchResult]]})
-      .asPromise.map { chunks =>
-        Ok(Comet(chunks, callback = "parent.callback"))
-      }
+      (Actors.travellingSalesman ? (GetPath(hash), 5.seconds))
+        .mapTo[Enumerator[SearchResult]].asPromise.map(
+          chunks => Ok.stream(chunks &> Comet(callback = "parent.callback"))
+        )
     }
   }
 

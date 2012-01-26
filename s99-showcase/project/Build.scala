@@ -15,6 +15,6 @@ object ApplicationBuild extends Build {
     )
 
 
-    val main = PlayProject(appName, appVersion, appDependencies).settings(defaultScalaSettings:_*)
+    val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings()
 
 }

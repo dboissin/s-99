@@ -4,9 +4,8 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.FunSuite
 import scala.util.Random
-import akka.actor.Actor._
-import akka.actor.ActorRef
-import akka.actor.Actor
+import akka.actor._
+import akka.util.duration._
 import java.util.concurrent.TimeUnit
 
 @RunWith(classOf[JUnitRunner])
@@ -50,36 +49,10 @@ class TravellingSalesmanTest extends FunSuite {
 
   test("Find path with a genetic algorithm") {
     val cities = loadFromFile(getClass.getClassLoader.getResource("defi250.csv").getFile)
-    val tsm = actorOf(new TravellingSalesmanManagement()).start()
-    val fres = tsm ? SearchPath(cities, None, 1322332248587L)
-    TimeUnit.SECONDS.sleep(1)
-
-    val titi = fres.as[SearchResult].get
-    println("Distance : " + titi.pathSize)
-    assert(pathLonger(titi.path) < 15 && titi.path.size == 250)
-
-    val fres1 = tsm ? SearchPath(cities, Some(titi.pathSize))
-    TimeUnit.SECONDS.sleep(1)
-
-    val toto = fres1.as[SearchResult].get
-    println("Distance : " + toto.pathSize)
-    assert(pathLonger(toto.path) < 14 && toto.path.size == 250)
-
-    val fres2 = tsm ? SearchPath(cities, Some(toto.pathSize))
-    TimeUnit.SECONDS.sleep(1)
-
-    val tata = fres2.as[SearchResult].get
-    println("Distance : " + tata.pathSize)
-    assert(pathLonger(tata.path) < 14 && tata.path.size == 250)
-
-    val fres3 = tsm ? SearchPath(cities, Some(tata.pathSize))
-    TimeUnit.SECONDS.sleep(1)
-
-    val tutu = fres3.as[SearchResult].get
-    println("Distance : " + tutu.pathSize + " seed : " + tutu.seed)
-    assert(pathLonger(tutu.path) < 13 && tutu.path.size == 250)
-
-    tsm.stop()
+    val system = ActorSystem("TravellingSalesmanTest")
+    val travellingSalesman = system.actorOf(Props(new TravellingSalesman()))
+    (travellingSalesman ? (Start("test", cities, 1322332248587L), 5.seconds))
+        .mapTo[Result].foreach(res => println(res.individual.pathSize))
   }
 
   test("Hash sha1") {

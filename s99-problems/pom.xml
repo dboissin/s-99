@@ -44,9 +44,9 @@
       <version>${scala-version}</version>
     </dependency>
     <dependency>
-      <groupId>se.scalablesolutions.akka</groupId>
+      <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-actor</artifactId>
-      <version>1.2</version>
+      <version>2.0-M2</version>
     </dependency>
 
     <!-- Test -->

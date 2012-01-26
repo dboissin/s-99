@@ -1,94 +1,62 @@
 package actors
 
-import akka.actor.Actor._
-import akka.routing.Routing
-import fr.dboissin.s99.problems.SearchPath
-import akka.routing.CyclicIterator
-import akka.routing.Routing.Broadcast
-import fr.dboissin.s99.problems.SearchResult
-import scala.collection.mutable.HashMap
-import fr.dboissin.s99.problems.Result
-import fr.dboissin.s99.problems.Hash
-import scala.collection.mutable.ListBuffer
-import fr.dboissin.s99.problems.TravellingSalesman
-import fr.dboissin.s99.problems.Start
 import akka.actor._
+import akka.routing._
 import play.api._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._
+import play.api.libs.Codecs._
+import fr.dboissin.s99.problems._
+import scala.collection.mutable._
 
-case class GetPath(hash:String)
+case class GetPath(hash: String, lastPathSize: Option[Double] = None)
 
 class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
-
-  val futures = new HashMap[String, ListBuffer[CallbackEnumerator[SearchResult]]]
-  val bests = new HashMap[String, SearchResult]
-  val workers = Vector.fill(poolSize)(actorOf[TravellingSalesman].start())
-  val loadBalancer = Routing.loadBalancerActor(CyclicIterator(workers))
-
-  private def addFuture(key:String, future:CallbackEnumerator[SearchResult]) = {
-    futures.get(key) match {
-      case Some(futures) =>
-        futures += future
-        false
-      case None =>
-        futures.put(key, ListBuffer.apply(future))
-        true
-    }
-  }
-
-  private def addResult(key:String, result:SearchResult) = {
-    bests.remove(key) match {
-      case Some(res) =>
-        if (result.pathSize < res.pathSize) {
-          bests.put(key, result)
-        } else {
-          bests.put(key, res)
-        }
-      case None => bests.put(key, result)
-    }
-  }
+  val router = context.actorOf(Props[TravellingSalesman].withRouter(RoundRobinRouter(poolSize)))
+  val futures = new HashMap[String, List[PushEnumerator[SearchResult]]]
+  val paths = new HashMap[String, SearchResult]
 
   def receive = {
-    case GetPath(hash) =>
-      lazy val sf:CallbackEnumerator[SearchResult] = new CallbackEnumerator[SearchResult] (
-          onComplete = {
-           // Logger.info("Disconnected : " + sf)
-            futures.get(hash).foreach(_.filterNot(_ == sf))
-          }
-      )
-      bests.get(hash) match {
-        case Some(res) =>
-          addFuture(hash, sf)
-          sf.push(res)
-        case None =>
-          addFuture(hash, sf)
-      }
-      self.reply(sf)
-
     case SearchPath(cities, _, seed) =>
-      val hash = Hash.sha1(cities.toString)
-      println(hash)
-      if (!bests.contains(hash)) {
-        loadBalancer ! Start(hash, cities, seed)
+      val hash = sha1(cities.toString)
+      if (!paths.get(hash).isDefined) {
+        paths.put(hash, null)
+        router ! Start(hash, cities, seed)
       }
-      self.senderFuture.map(_.completeWithResult(hash)) //.getOrElse(throw new RuntimeException("Response Error"))
-
-    case Result(id, individual, seed) =>
+      sender ! hash
+    case GetPath(hash, last) =>
+      val sf = new PushEnumerator[SearchResult]( onStart = self ! hash)
+      sender ! sf
+      paths.get(hash) match {
+        case Some(path) if (path != null && (!last.isDefined || last.get > path.pathSize)) =>
+          sf.push(path)
+        case _ => Logger.error("Path not found!")
+      }
+      futures.get(hash) match {
+         case Some(l) => futures.update(hash, sf :: l)
+         case None => futures.put(hash, List(sf))
+       }
+    case Result(hash, individual, seed) =>
+      Logger.debug("%s, %s, %s".format(hash, individual.pathSize, seed))
       val res = SearchResult(individual.path, individual.pathSize, seed)
-      addResult(id, res)
-      futures.get(id).foreach{lf =>
-        lf.foreach(f => f.push(res))
+      val up = paths.get(hash) match {
+        case None =>
+          paths.put(hash, res)
+          true
+        case Some(path) if (path == null || path.pathSize > individual.pathSize) =>
+          paths.update(hash, res)
+          true
+        case _ => false
       }
-  }
-
-  override def postStop() = {
-    loadBalancer ! Broadcast(PoisonPill)
-    loadBalancer ! PoisonPill
+      if (up && futures.get(hash).isDefined) {
+        futures.get(hash).get.foreach(_.push(res))
+      }
   }
 
 }
 
+
 object Actors {
-  lazy val travellingSalesman = actorOf(new TravellingSalesmanManagement())
+  lazy val system = ActorSystem("TravellingSalesman")
+  lazy val travellingSalesman = system.actorOf(Props(new TravellingSalesmanManagement()))
 }

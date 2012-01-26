@@ -6,11 +6,12 @@ import actors.Actors._
 object Global extends GlobalSettings{
 
   override def onStart(app:Application) {
-    travellingSalesman.start
+    Logger.info("Start Showcase")
   }
 
   override def onStop(app:Application) {
-    travellingSalesman.stop
+    Logger.info("Stop Showcase")
+    system.shutdown
   }
 
 }
