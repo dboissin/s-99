@@ -16,7 +16,6 @@ import play.api.libs.iteratee.Enumerator
 import fr.dboissin.s99.problems.SearchResult
 import fr.dboissin.s99.problems.SearchPath
 import play.api.libs._
-import play.api.libs.akka._
 import play.api.libs.Comet.CometMessage
 import play.api.libs.concurrent._
 
