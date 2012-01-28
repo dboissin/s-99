@@ -9,9 +9,7 @@ object ApplicationBuild extends Build {
     val appVersion      = "0.1"
 
     val appDependencies = Seq(
-      "fr.dboissin.s99" % "s99-problems" % "0.1-SNAPSHOT",
-      "net.debasishg" %% "sjson" % "0.15",
-      "com.fasterxml" % "jackson-module-scala" % "1.9.1-SNAPSHOT"
+      "fr.dboissin.s99" % "s99-problems" % "0.1-SNAPSHOT"
     )
 
 

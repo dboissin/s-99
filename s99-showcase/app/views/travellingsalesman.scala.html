@@ -9,12 +9,13 @@
     <script type="text/javascript">
       var board = document.getElementById("board");
       var callback = function(data) {
-        _.each(data, function(obj){
-          document.getElementById("resultats").innerHTML += obj.id + "-";
-        });
-        document.getElementById("resultats").innerHTML += "<br />";
+        //_.each(data.path, function(obj){
+        //  document.getElementById("resultats").innerHTML += obj.id + "-";
+        //});
+        document.getElementById("resultats").innerHTML += data.distance + "<br />";
       }
     </script>
 
     <iframe src="/travellingsalesmansearch" style="display:none;"></iframe>
 }
+
