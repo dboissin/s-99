@@ -9,10 +9,13 @@ object ApplicationBuild extends Build {
     val appVersion      = "0.1"
 
     val appDependencies = Seq(
-      "fr.dboissin.s99" % "s99-problems" % "0.1-SNAPSHOT"
     )
 
+    val s99Problems = Project("s99-problems", file("modules/s99-problems"))
 
-    val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings()
+    val main = PlayProject(
+      appName, appVersion, appDependencies, mainLang = SCALA
+    ).dependsOn(s99Problems)
 
 }
+

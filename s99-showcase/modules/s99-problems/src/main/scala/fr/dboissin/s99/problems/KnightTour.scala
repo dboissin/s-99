@@ -4,7 +4,7 @@ package fr.dboissin.s99.problems
  * P91 : Another famous problem is this one:
  * How can a knight jump on an NÃ—N chessboard in such a way that
  * it visits every square exactly once?
- * 
+ *
  * @author dboissin
  */
 object KnightTour {
@@ -20,7 +20,7 @@ object KnightTour {
       (unorderedJumps(coordinates::path, size).size, coordinates)
     ).sortWith((el1, el2) => el1._1  < el2._1).map(el => el._2)
   }
-  
+
   def unorderedJumps(path: List[(Int, Int)], size:Int) = {
     val currentPosition = path.head
     allowedMovement.map(pos =>
@@ -31,7 +31,7 @@ object KnightTour {
   }
 
   def findPath(start: (Int, Int), size: Int) = {
-    def find(path: List[(Int, Int)]): List[(Int, Int)] = 
+    def find(path: List[(Int, Int)]): List[(Int, Int)] =
       jumps(path, size) match {
         case Nil => path
         case head::tail => find(head::path)

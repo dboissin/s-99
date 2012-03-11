@@ -1,11 +1,11 @@
 package fr.dboissin.s99.problems
 
 /**
- * 
+ *
  * @author dboissin
  */
 object S99List {
-  
+
   /**
    * P01 : Find the last element of a list.
    */
@@ -14,7 +14,7 @@ object S99List {
     case _::xs => last(xs)
     case Nil => throw new NoSuchElementException
   }
-  
+
   /**
    * P02 : Find the last but one element of a list.
    */
@@ -23,7 +23,7 @@ object S99List {
     case _::tail => penultimate(tail)
     case Nil => throw new NoSuchElementException
   }
-  
+
   /**
    * P03 : Find the Kth element of a list.
    */
@@ -37,7 +37,7 @@ object S99List {
    */
   def length[T](l: List[T]) =
     l.foldLeft(0)((count, _) => (count + 1))
- 
+
   /**
    * P05 : Reverse a list.
    */
@@ -46,13 +46,13 @@ object S99List {
     case head::tail => reverse(tail):::List(head)
     case _ => throw new NoSuchElementException
   }
-    
+
   /**
    * P06 : Find out whether a list is a palindrome.
    */
   def isPalindrome[T](l: List[T]) =
     l.reverse == l
-    
+
   /**
    * P07 : Flatten a nested list structure.
    */
@@ -60,7 +60,7 @@ object S99List {
     case ls: List[_] => flatten(ls)
     case el => List(el)
   }
-  
+
   /**
    * P08 : Eliminate consecutive duplicates of list elements.
    * If a list contains repeated elements they should be replaced with a single
@@ -70,7 +70,7 @@ object S99List {
     case Nil => Nil
     case head::tail => head::compress(tail.dropWhile(_ == head))
   }
-  
+
   /**
    * P09 : Pack consecutive duplicates of list elements into sublists.
    * If a list contains repeated elements they should be placed in separate sublists.
@@ -79,7 +79,7 @@ object S99List {
     case Nil => Nil
     case _ => l.takeWhile(_ == l.head)::pack(l.dropWhile(_ == l.head))
   }
-  
+
   /**
    * P10 : Run-length encoding of a list.
    * Use the result of problem P09 to implement the so-called run-length
@@ -89,7 +89,7 @@ object S99List {
   def encode(l: List[Symbol]): List[(Int, Symbol)] = {
      pack(l) map { e => (e.length, e.head)}
   }
-  
+
   /**
    * P11 : Modified run-length encoding.
    * Modify the result of problem P10 in such a way that if an element has no duplicates
@@ -107,7 +107,7 @@ object S99List {
    */
   def decode(l: List[(Int, Symbol)]): List[Symbol] =
     l flatMap { e => List.fill(e._1)(e._2)}
-  
+
   /**
    * P13 : Run-length encoding of a list (direct solution).
    * Implement the so-called run-length encoding data compression method directly.
@@ -118,19 +118,19 @@ object S99List {
     case _ => val tmp = l span(_ == l.head)
       (tmp._1.length, tmp._1.head)::encodeDirect(tmp._2)
   }
-  
+
   /**
    * P14 : Duplicate the elements of a list.
    */
   def duplicate(l: List[Symbol]): List[Symbol] =
     l flatMap (el => List(el, el))
-  
+
   /**
    * P15 : Duplicate the elements of a list a given number of times.
    */
   def duplicateN(nb: Int, l: List[Symbol]): List[Symbol] =
     l flatMap (el => List.fill(nb)(el))
-  
+
   /**
    * P16 : Drop every Nth element from a list.
    */
@@ -147,7 +147,7 @@ object S99List {
    * The length of the first part is given. Use a Tuple for your result.
    */
   def split(n: Int, l: List[Symbol]): (List[Symbol],List[Symbol]) =
-    l splitAt n  
+    l splitAt n
 
   /**
    * P18 : Extract a slice from a list.
@@ -161,7 +161,7 @@ object S99List {
     case (0, _, _) => l.head::slice(0, k-1, l.tail)
     case (_, _, _) => slice(i-1, k-1, l.tail)
   }
-  
+
   /**
    * P19 : Rotate a list N places to the left.
    */
@@ -169,7 +169,7 @@ object S99List {
     val (l1, l2) = l.splitAt(if (offset < 0) l.length + offset else offset)
     l2:::l1
   }
-  
+
   /**
    * P20 : Remove the Kth element from a list.
    * Return the list and the removed element in a Tuple. Elements are numbered from 0.
@@ -189,7 +189,7 @@ object S99List {
     case (0, _) => el::l
     case (_, _) => l.head::insertAt (el, n-1, l.tail)
   }
-    
+
   /**
    * P22 : Create a list containing all integers within a given range.
    */
@@ -199,13 +199,13 @@ object S99List {
     else
       curr::range(curr + 1, end)
   }
-    
+
   /**
    * P23 : Extract a given number of randomly selected elements from a list.
    */
   def randomSelect[T](nb: Int, l: List[T]): List[T] =  {
     import java.util.Random
-    
+
     if (l == Nil)
       return Nil
     val (ls, el) = removeAt(new Random().nextInt(l.length), l)

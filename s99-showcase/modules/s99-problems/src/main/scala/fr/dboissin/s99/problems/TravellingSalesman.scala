@@ -83,14 +83,14 @@ object TravellingSalesman {
 
     val lines = fromFile(path).getLines().toList;
     var i = -1
-    lines.tail.map(line => { 
+    lines.tail.map(line => {
       val coordinates = line.split(";")
       i += 1
       City(i, coordinates(0), coordinates(1))
-    }) 
+    })
   }
 
-  def pathLonger(path: List[City]) = 
+  def pathLonger(path: List[City]) =
     path.tail.foldLeft((path.head, distanceBetweenCities(path.last, path.head)))((l, c) =>
       (c, l._2 + distanceBetweenCities(l._1, c)))._2
 
