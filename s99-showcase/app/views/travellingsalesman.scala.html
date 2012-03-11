@@ -4,7 +4,9 @@
 
     <h2>Travelling Salesman</h2>
 
-    <div id="resultats"></div>
+    <div id="resultats">
+      @path.map{ res => @res }
+    </div>
     <canvas id="board" width="500" height="500"></canvas>
     <script type="text/javascript">
       var board = document.getElementById("board");

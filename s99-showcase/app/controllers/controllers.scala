@@ -57,10 +57,14 @@ object Showcase extends Controller {
   }
 
   def travellingSalesman = Action { implicit request =>
-    val cities = Mock.cities
-    (Actors.travellingSalesman ? SearchPath(cities)).mapTo[String]
-        .foreach(Logger.info(_))
-    Ok(views.html.travellingsalesman(None))
+    AsyncResult {
+      val cities = Mock.cities
+      (Actors.travellingSalesman ? SearchPath(cities)).mapTo[InitInfos]
+        .asPromise.map{ init =>
+          Logger.info("Init : %s - %s".format(init.hash, init.path.map(_.pathSize).getOrElse("")))
+          Ok(views.html.travellingsalesman(init.path.map(toJson(_).toString)))
+        }
+    }
   }
 
   def travellingSalesmanSearch(hash:String) = Action {

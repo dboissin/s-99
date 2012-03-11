@@ -9,7 +9,9 @@ import play.api.libs.Codecs._
 import fr.dboissin.s99.problems._
 import scala.collection.mutable._
 
+case class InitInfos(hash: String, path: Option[SearchResult] = None)
 case class GetPath(hash: String, lastPathSize: Option[Double] = None)
+case class Quit(hash: String, channel: PushEnumerator[SearchResult])
 
 class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
   val router = context.actorOf(Props[TravellingSalesman].withRouter(RoundRobinRouter(poolSize)))
@@ -19,16 +21,21 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
   def receive = {
     case SearchPath(cities, _, seed) =>
       val hash = sha1(cities.toString)
-      if (!paths.get(hash).isDefined) {
-        paths.put(hash, null)
-        router ! Start(hash, cities, seed)
+      paths.get(hash) match {
+        case None =>
+          paths.put(hash, null)
+          Logger.debug("Calculate shortest path")
+          router ! Start(hash, cities, seed)
+          sender ! InitInfos(hash)
+        case Some(path) => sender ! InitInfos(hash, Some(path))
       }
-      sender ! hash
+
     case GetPath(hash, last) =>
-      val sf = Enumerator.imperative[SearchResult]( onStart = self ! hash)
-      sender ! sf
+      lazy val sf: PushEnumerator[SearchResult] =
+        Enumerator.imperative[SearchResult](onComplete = self ! Quit(hash, sf))
       paths.get(hash) match {
         case Some(path) if (path != null && (!last.isDefined || last.get > path.pathSize)) =>
+          Logger.debug("GetPath : push path")
           sf.push(path)
         case _ => Logger.error("Path not found!")
       }
@@ -36,6 +43,8 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
          case Some(l) => futures.update(hash, sf :: l)
          case None => futures.put(hash, List(sf))
        }
+      sender ! sf
+
     case Result(hash, individual, seed) =>
       Logger.debug("%s, %s, %s".format(hash, individual.pathSize, seed))
       val res = SearchResult(individual.path, individual.pathSize, seed)
@@ -51,6 +60,10 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
       if (up && futures.get(hash).isDefined) {
         futures.get(hash).get.foreach(_.push(res))
       }
+
+    case Quit(hash, channel) =>
+      Logger.info("User has disconnected: %s".format(channel))
+      futures.get(hash).map(f => futures.update(hash, f.filterNot(_ == channel))) 
   }
 
 }
