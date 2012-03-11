@@ -6,6 +6,8 @@ import org.scalatest.FunSuite
 import scala.util.Random
 import akka.actor._
 import akka.util.duration._
+import akka.pattern.ask
+import akka.util.Timeout
 import java.util.concurrent.TimeUnit
 
 @RunWith(classOf[JUnitRunner])
@@ -20,7 +22,7 @@ class TravellingSalesmanTest extends FunSuite {
     val res = distanceBetweenCities(City(0, 1, 4), City(1, 1, 1))
     assert(res == 3)
   }
-  
+
   test("Load cities from file") {
     val res = loadFromFile(getClass.getClassLoader.getResource("defi250.csv").getFile)
     assert(res.size == 250)
@@ -48,10 +50,11 @@ class TravellingSalesmanTest extends FunSuite {
   }
 
   test("Find path with a genetic algorithm") {
+    implicit val timeout = Timeout(5 seconds)
     val cities = loadFromFile(getClass.getClassLoader.getResource("defi250.csv").getFile)
     val system = ActorSystem("TravellingSalesmanTest")
     val travellingSalesman = system.actorOf(Props(new TravellingSalesman()))
-    (travellingSalesman ? (Start("test", cities, 1322332248587L), 5.seconds))
+    (travellingSalesman ? Start("test", cities, 1322332248587L))
         .mapTo[Result].foreach(res => println(res.individual.pathSize))
   }
 

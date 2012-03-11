@@ -25,7 +25,7 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
       }
       sender ! hash
     case GetPath(hash, last) =>
-      val sf = new PushEnumerator[SearchResult]( onStart = self ! hash)
+      val sf = Enumerator.imperative[SearchResult]( onStart = self ! hash)
       sender ! sf
       paths.get(hash) match {
         case Some(path) if (path != null && (!last.isDefined || last.get > path.pathSize)) =>
