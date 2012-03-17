@@ -7,7 +7,8 @@ GET     /knighttour                     controllers.Showcase.knightTour(size: In
 GET     /knighttour/:size               controllers.Showcase.knightTour(size: Int, x:Int=1, y:Int=0)
 GET     /knighttour/:size/:x/:y         controllers.Showcase.knightTour(size: Int, x:Int, y:Int)
 
-GET     /travellingsalesman             controllers.Showcase.travellingSalesman
+GET     /travellingsalesman             controllers.Showcase.travellingSalesman(seed:Long=-8970032005582704123L)
+GET     /travellingsalesman/:seed       controllers.Showcase.travellingSalesman(seed:Long)
 GET     /travellingsalesmansearch/:hash controllers.Showcase.travellingSalesmanSearch(hash:String)
 
 # Map static resources from the /public folder to the /public path

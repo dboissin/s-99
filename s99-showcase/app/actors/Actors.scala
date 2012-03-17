@@ -18,6 +18,7 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
   val router = context.actorOf(Props[TravellingSalesman].withRouter(RoundRobinRouter(poolSize)))
   val futures = new HashMap[String, List[PushEnumerator[SearchResult]]]
   val paths = new HashMap[String, SearchResult]
+  val seeds = new HashMap[String, List[Long]]
 
   def receive = {
     case SearchPath(cities, _, seed) =>
@@ -27,8 +28,16 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
           paths.put(hash, null)
           Logger.debug("Calculate shortest path")
           router ! Start(hash, cities, seed)
-          (0 until Actors.nbOfSameCalc).foreach(i => router ! Start(hash, cities, Actors.rnd.nextLong()))
+          seeds.update(hash, seed :: seeds.getOrElse(hash, Nil))
+          (0 until Actors.nbOfSameCalc).foreach{i =>
+            val rndSeed = Actors.rnd.nextLong()
+            seeds.update(hash, rndSeed :: seeds.getOrElse(hash, Nil))
+            router ! Start(hash, cities, rndSeed)}
           sender ! InitInfos(hash)
+        case Some(path) if (!seeds.getOrElse(hash, Nil).contains(seed)) =>
+          seeds.update(hash, seed :: seeds.getOrElse(hash, Nil))
+          router ! Start(hash, cities, seed)
+          sender ! InitInfos(hash, Some(path))
         case Some(path) => sender ! InitInfos(hash, Some(path))
       }
 

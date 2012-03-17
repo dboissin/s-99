@@ -56,10 +56,10 @@ object Showcase extends Controller {
     Ok(views.html.knighttour(jsonPath, size))
   }
 
-  def travellingSalesman = Action { implicit request =>
+  def travellingSalesman(seed: Long) = Action { implicit request =>
     AsyncResult {
       val cities = Mock.cities
-      (Actors.travellingSalesman ? SearchPath(cities)).mapTo[InitInfos]
+      (Actors.travellingSalesman ? SearchPath(cities, None, seed)).mapTo[InitInfos]
         .asPromise.map{ init =>
           Logger.info("Init : %s - %s".format(init.hash, init.path.map(_.pathSize).getOrElse("")))
           Ok(views.html.travellingsalesman(init.hash, init.path.map(toJson(_).toString)))
