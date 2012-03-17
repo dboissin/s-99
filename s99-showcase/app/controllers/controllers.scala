@@ -62,7 +62,7 @@ object Showcase extends Controller {
       (Actors.travellingSalesman ? SearchPath(cities)).mapTo[InitInfos]
         .asPromise.map{ init =>
           Logger.info("Init : %s - %s".format(init.hash, init.path.map(_.pathSize).getOrElse("")))
-          Ok(views.html.travellingsalesman(init.path.map(toJson(_).toString)))
+          Ok(views.html.travellingsalesman(init.hash, init.path.map(toJson(_).toString)))
         }
     }
   }

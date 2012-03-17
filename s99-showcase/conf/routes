@@ -6,9 +6,9 @@ GET     /                               controllers.Showcase.list
 GET     /knighttour                     controllers.Showcase.knightTour(size: Int=8, x:Int=6, y:Int=7)
 GET     /knighttour/:size               controllers.Showcase.knightTour(size: Int, x:Int=1, y:Int=0)
 GET     /knighttour/:size/:x/:y         controllers.Showcase.knightTour(size: Int, x:Int, y:Int)
+
 GET     /travellingsalesman             controllers.Showcase.travellingSalesman
-#GET     /travellingsalesmansearch/:hash controllers.Showcase.travellingSalesmanSearch(hash:String)
-GET     /travellingsalesmansearch       controllers.Showcase.travellingSalesmanSearch(hash:String="b31a2e2da302bcdacb31331ec8ce229e65652931")
+GET     /travellingsalesmansearch/:hash controllers.Showcase.travellingSalesmanSearch(hash:String)
 
 # Map static resources from the /public folder to the /public path
 GET     /public/*file                   controllers.Assets.at(path="/public", file)

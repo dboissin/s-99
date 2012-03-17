@@ -1,23 +1,23 @@
-@(path: Option[String])(implicit request:play.api.mvc.RequestHeader)
+@(hash: String, path: Option[String])(implicit request:play.api.mvc.RequestHeader)
 
 @main {
 
     <h2>Travelling Salesman</h2>
 
-    <div id="resultats">
-      @path.map{ res => @res }
-    </div>
+    <div id="results"></div>
     <canvas id="board" width="500" height="500"></canvas>
     <script type="text/javascript">
-      var board = document.getElementById("board");
-      var callback = function(data) {
-        //_.each(data.path, function(obj){
-        //  document.getElementById("resultats").innerHTML += obj.id + "-";
-        //});
-        document.getElementById("resultats").innerHTML += data.distance + "<br />";
-      }
+      var board = document.getElementById("board"),
+        results = document.getElementById("results"),
+        ts = new s99.travelling.Path("@hash", @path.map( p => Html("JSON.parse('" + p + "')")).getOrElse("null")),
+        callback = function(data) {
+          ts.res = data;
+          results.innerHTML = ts.toString();
+          ts.draw(board);
+        };
+        @path.map(p =>  Html("results.innerHTML = ts.toString();ts.draw(board);"))
     </script>
 
-    <iframe src="/travellingsalesmansearch" style="display:none;"></iframe>
+    <iframe src="/travellingsalesmansearch/@hash" style="display:none;"></iframe>
 }
 
