@@ -8,6 +8,7 @@ import play.api.libs.concurrent._
 import play.api.libs.Codecs._
 import fr.dboissin.s99.problems._
 import scala.collection.mutable._
+import scala.util.Random
 
 case class InitInfos(hash: String, path: Option[SearchResult] = None)
 case class GetPath(hash: String, lastPathSize: Option[Double] = None)
@@ -26,6 +27,7 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
           paths.put(hash, null)
           Logger.debug("Calculate shortest path")
           router ! Start(hash, cities, seed)
+          (0 until Actors.nbOfSameCalc).foreach(i => router ! Start(hash, cities, Actors.rnd.nextLong()))
           sender ! InitInfos(hash)
         case Some(path) => sender ! InitInfos(hash, Some(path))
       }
@@ -51,9 +53,11 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
       val up = paths.get(hash) match {
         case None =>
           paths.put(hash, res)
+          Logger.info("Shortest path found to %s - distance : %s with seed : %s".format(hash, individual.pathSize, seed))
           true
         case Some(path) if (path == null || path.pathSize > individual.pathSize) =>
           paths.update(hash, res)
+          Logger.info("Shortest path found to %s - distance : %s with seed : %s".format(hash, individual.pathSize, seed))
           true
         case _ => false
       }
@@ -72,4 +76,6 @@ class TravellingSalesmanManagement(poolSize:Int = 20) extends Actor {
 object Actors {
   lazy val system = ActorSystem("TravellingSalesman")
   lazy val travellingSalesman = system.actorOf(Props(new TravellingSalesmanManagement()))
+  lazy val nbOfSameCalc = Play.current.configuration.getInt("nbOfSameCalc").getOrElse(0)
+  lazy val rnd = new Random((new java.util.Date).getTime)
 }
