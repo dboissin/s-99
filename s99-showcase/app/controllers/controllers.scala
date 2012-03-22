@@ -16,6 +16,7 @@ import play.api.libs.Comet.CometMessage
 import play.api.libs.concurrent._
 import play.api.libs.json._
 import Json._
+import scala.concurrent.stm._
 
 object Showcase extends Controller {
 
@@ -40,7 +41,10 @@ object Showcase extends Controller {
       JsNumber(t._1), JsNumber(t._2)))
   }
 
+
   implicit val searchResultMessage = CometMessage[SearchResult](toJson(_).toString)
+
+  implicit val conwayUniverse = CometMessage[Universe](_.toString)
 
   def list = Action { implicit request =>
     val testList = List(("knighttour", "Knight's tour"),
@@ -76,4 +80,16 @@ object Showcase extends Controller {
     }
   }
 
+  def conway = Action { implicit request =>
+    Ok(views.html.conway())
+  }
+
+  def conwayLife = Action {
+      val universe = Ref(Universe())
+      Ok.stream(Enumerator.fromCallback{ () =>
+        Promise.timeout(Some(universe.single.swap(universe.single.get.next)), 1 seconds)
+      } &> EventSource()).withHeaders(CONTENT_TYPE -> "text/event-stream")
+  }
+
 }
+

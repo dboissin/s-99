@@ -10,6 +10,8 @@ GET     /knighttour/:size/:x/:y         controllers.Showcase.knightTour(size: In
 GET     /travellingsalesman             controllers.Showcase.travellingSalesman(seed:Long=-8970032005582704123L)
 GET     /travellingsalesman/:seed       controllers.Showcase.travellingSalesman(seed:Long)
 GET     /travellingsalesmansearch/:hash controllers.Showcase.travellingSalesmanSearch(hash:String)
+GET     /conway                         controllers.Showcase.conway()
+GET     /conway/life                    controllers.Showcase.conwayLife()
 
 # Map static resources from the /public folder to the /public path
 GET     /public/*file                   controllers.Assets.at(path="/public", file)
