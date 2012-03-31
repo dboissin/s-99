@@ -85,6 +85,28 @@ var s99 = {};
 })();
 
 (function() {
+  s99.conway = s99.conway || {};
+
+  s99.conway.life = {
+    draw: function(canvas, lifeCells, cellSize) {
+      var context = canvas.getContext("2d"),
+      maxWidthIdx = canvas.width/cellSize,
+      maxHeightIdx = canvas.height/cellSize,
+      showableLifeCells = _.filter(lifeCells, function(cell) {
+        return cell.x >= 0 && cell.y >= 0 && cell.x < maxWidthIdx && cell.y < maxHeightIdx
+      });
+
+      s99.utils.clearCanvas(canvas);
+      context.fillStyle = "black";
+      _.each(showableLifeCells, function(cell) {
+        context.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+      });
+    }
+  };
+
+})();
+
+(function() {
   s99.utils = s99.utils || {};
 
   s99.utils = {

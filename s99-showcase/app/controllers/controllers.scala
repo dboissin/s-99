@@ -41,10 +41,20 @@ object Showcase extends Controller {
       JsNumber(t._1), JsNumber(t._2)))
   }
 
+  implicit object CellFormat extends Writes[Cell] {
+    def writes(c: Cell): JsValue = JsObject(List(
+      "x" -> JsNumber(c.x),
+      "y" -> JsNumber(c.y)))
+  }
+
+  implicit object UniverseFormat extends Writes[Universe] {
+    def writes(u: Universe): JsValue = JsObject(List(
+      "lifeCells" -> toJson(u.lifeCells)))
+  }
 
   implicit val searchResultMessage = CometMessage[SearchResult](toJson(_).toString)
 
-  implicit val conwayUniverse = CometMessage[Universe](_.toString)
+  implicit val conwayUniverse = CometMessage[Universe](toJson(_).toString)
 
   def list = Action { implicit request =>
     val testList = List(("knighttour", "Knight's tour"),
