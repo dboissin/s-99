@@ -15,6 +15,7 @@ class TspAcoTest extends FunSuite {
 
   implicit val timeout = Timeout(60 seconds)
   lazy val cities = TravellingSalesman.loadFromFile(getClass.getClassLoader.getResource("defi250.csv").getFile)
+  //lazy val cities = TravellingSalesman.loadFromFile(getClass.getClassLoader.getResource("berlin52.csv").getFile)
 
   test("Calculate neighbors distances") {
     val scoredNeighbors = neighborsDistances(cities)
