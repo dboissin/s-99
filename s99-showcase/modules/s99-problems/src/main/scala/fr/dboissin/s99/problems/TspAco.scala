@@ -3,6 +3,7 @@ package fr.dboissin.s99.problems
 import akka.actor._
 import akka.routing._
 import akka.pattern.ask
+import akka.transactor._
 import akka.util.duration._
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
@@ -14,51 +15,53 @@ import akka.event.Logging
 import scala.sys.process._
 import java.io.File
 
-class Environment(cities: List[City], seed: Long = new Date().getTime) extends Actor {
+class Environment(cities: List[City], seed: Long = new Date().getTime) extends Transactor {
 
   val log = new FileProcessLogger(new File("/tmp/tspaco"))
+  val ANT_NUMBER = 20
   val scoredNeighbors = Tsp.neighborsDistances(cities)
   val pheromones = Ref(Tsp.initPheromones(scoredNeighbors))
-  val router = Tsp.system.actorOf(Props(new Ant(Tsp.invNeighborsDistances(cities), pheromones.single, new Random(seed))).withRouter(RoundRobinRouter(20)))
+  val router = Tsp.system.actorOf(Props(
+    new Ant(Tsp.invNeighborsDistances(cities), pheromones.single, new Random(seed))
+  ).withRouter(RoundRobinRouter(ANT_NUMBER)))
   val wavePheromones = Ref(Array.fill(cities.size, cities.size)(0.0))
-  val antNb = Ref(19)
-  val waveNb = Ref(39)
-  val best = Ref[(List[City], Double)]((Nil, 10000.0))
-  val Q = 4.0
-  val rho = 0.1
+  val antNb = Ref(ANT_NUMBER)
+  val waveNb = Ref(40)
+  val best = Ref[(List[City], Double)]((Nil, 100000.0))
+  val Q = 0.0001
+  val rho = 0.3
   val rnd = new Random(seed)
 
-  def receive = {
+  def atomically = implicit txn => {
     case res: List[City] =>
       updateWavePheromones(res)
-      if (antNb.single.get == 0) {
+      if (antNb.get == 0) {
         updatePheromones
-        log.out("Path length : " + best.single.get._2)
+        log.out("Path length : " + best.get._2)
         log.flush()
-        if (waveNb.single.get > 0) {
-          self ! "launchWave"
+        if (waveNb.get > 0) {
+          launch
         } else {
-          println("Best path : " + best.single.get._2)
-          Tsp.printMatrix(pheromones.single.get)
+          println("Best path : " + best.get._2 + " - seed : " + seed)
         }
       }
 
-    case "launchWave" =>
-      (1 to 20).foreach{i =>
-        router ! (cities.find(_.id == rnd.nextInt(cities.size)).getOrElse(cities.head), cities)
-          //.mapTo[List[City]].map(res => self ! res)
-      }
+    case "launchWave" => launch
 
   }
 
-  // TODO rendre cette méthode transactionnelle
-  private def updateWavePheromones(path: List[City]) {
-    println("updateWavePheromones - ant restantes : " + antNb.single.get)
+  private def launch {
+    (1 to ANT_NUMBER).foreach{i =>
+        router ! (cities.find(_.id == rnd.nextInt(cities.size)).getOrElse(cities.head), cities)
+  }}
+
+  private def updateWavePheromones(path: List[City])(implicit txn: InTxn) {
+    println("updateWavePheromones - ant restantes : " + antNb.get)
     val pathLength = Tsp.pathLonger(path)
-    if (pathLength < best.single.get._2) {
-      best.single.set((path, pathLength))
+    if (pathLength < best.get._2) {
+      best.set((path, pathLength))
     }
-    wavePheromones.single.transform{ p =>
+    wavePheromones.transform{ p =>
       val size = p.length
       val wp = Array.ofDim[Double](size, size)
       path./:(path.last){(c1, c2) =>
@@ -69,14 +72,13 @@ class Environment(cities: List[City], seed: Long = new Date().getTime) extends A
       }
       wp
     }
-    antNb.single.transform(_ - 1)
+    antNb.transform(_ - 1)
   }
 
-  // TODO rendre cette méthode transactionnelle
-  private def updatePheromones {
-    println("updatePheromones - wave : " + waveNb.single.get)
-    val wp = wavePheromones.single.swap(Array.fill(cities.size, cities.size)(0.0))
-    pheromones.single.transform{ p =>
+  private def updatePheromones(implicit txn: InTxn) {
+    println("updatePheromones - wave : " + waveNb.get)
+    val wp = wavePheromones.swap(Array.fill(cities.size, cities.size)(0.0))
+    pheromones.transform{ p =>
       val size = p.length
       val tmp = Array.ofDim[Double](size, size)
       for (i <- 0 to (size - 1)) {
@@ -88,8 +90,8 @@ class Environment(cities: List[City], seed: Long = new Date().getTime) extends A
       }
       tmp
     }
-    waveNb.single.transform(_ - 1)
-    antNb.single.set(19)
+    waveNb.transform(_ - 1)
+    antNb.set(ANT_NUMBER)
   }
 
 }
@@ -127,8 +129,8 @@ class AntGuide(distances: Array[Array[Double]]) extends Actor with Routable {
 
 class Ant(invDistances: Array[Array[Double]], pheromones: Ref.View[Array[Array[Double]]], rnd: Random) extends Actor with Routable {
 
-  val alpha = 0.1
-  val beta = 2.0
+  val alpha = -0.2
+  val beta = 9.6
 
   def receive = {
     case (start: City, cities: List[City]) =>
@@ -168,7 +170,7 @@ class Ant(invDistances: Array[Array[Double]], pheromones: Ref.View[Array[Array[D
       if (tmpLonger < bestLonger) {
         best = tmp
         bestLonger = tmpLonger
-        wait = 1000
+        wait = 9000
       } else {
         wait -= 1
       }
